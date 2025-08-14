@@ -1,69 +1,38 @@
-/**
- * @file 2d_transformations.c
- * @brief A C program to demonstrate 2D transformations using OpenGL.
- *
- * This program is driven entirely by the console. It visualizes Translation,
- * Scaling, Rotation, Reflection, and Shearing on a 2D triangle with animation.
- *
- * @author Gemini
- *
- * To Compile:
- * gcc 2d_transformations.c -o transform -lglut -lGL -lGLU -lm
- *
- * To Run:
- * ./transform
- */
-
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
 #include <string.h>
 
-// Include headers for Sleep/usleep
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
 
-// For M_PI constant on some compilers
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-// --- Global Variables ---
-
-// Window dimensions
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
 
-// The vertices of our triangle.
-// We use three arrays to manage state:
-// - initial_vertices: The absolute original state for resetting.
-// - base_vertices: The state before the current animation starts.
-// - triangle_vertices: The vertices being actively modified and drawn.
 float initial_vertices[3][2] = {
-    {0.0, 100.0},    // Top vertex (made smaller)
-    {-86.6, -50.0},  // Bottom-left vertex
-    {86.6, -50.0}    // Bottom-right vertex
+    {0.0, 100.0},
+    {-86.6, -50.0},
+    {86.6, -50.0}
 };
 float base_vertices[3][2];
 float triangle_vertices[3][2];
 
+int animation_choice = 0;
+int current_step = 0;
+const int total_steps = 120;
 
-// Animation state variables
-int animation_choice = 0;   // Which transformation to animate (0=none)
-int current_step = 0;       // The current frame of the animation
-const int total_steps = 120; // Total frames for any animation
-
-// User-defined transformation parameters
-float trans_x, trans_y;       // Translation factors
-float scale_x, scale_y;       // Scaling factors
-float rotation_angle;         // Rotation angle in degrees
-int reflection_axis;          // 1 for X-axis, 2 for Y-axis
-float shear_x, shear_y;       // Shearing factors
-
-// --- Function Prototypes ---
+float trans_x, trans_y;
+float scale_x, scale_y;
+float rotation_angle;
+int reflection_axis;
+float shear_x, shear_y;
 
 void display();
 void init();
@@ -72,41 +41,29 @@ void reset_triangle();
 void print_menu();
 void platform_sleep(int milliseconds);
 
-
-/**
- * @brief Main function: sets up GLUT and runs the main console-driven application loop.
- */
 int main(int argc, char** argv) {
-    // Initialize GLUT
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     glutInitWindowPosition(100, 100);
     glutCreateWindow("2D Transformations - Console Input");
 
-    // Custom initialization
     init();
 
-    // Register the display function. No keyboard func needed.
     glutDisplayFunc(display);
 
-    // Initialize all vertex arrays to the starting state
     memcpy(triangle_vertices, initial_vertices, sizeof(initial_vertices));
     memcpy(base_vertices, initial_vertices, sizeof(initial_vertices));
 
     char choice;
-    // This is the main application loop, driven by console input.
     while (1) {
-        display(); // Draw the current state
+        display();
         print_menu();
         printf("Enter your choice: ");
 
-        // Read a single char, the space before %c consumes whitespace (like newlines)
         scanf(" %c", &choice);
 
-        // Prepare for a new transformation
         if (choice >= '1' && choice <= '5') {
-            // Set the base for the new animation to the current triangle state
             memcpy(base_vertices, triangle_vertices, sizeof(triangle_vertices));
         }
 
@@ -157,23 +114,18 @@ int main(int argc, char** argv) {
                 break;
         }
 
-        // If a valid animation was chosen, run the animation loop
         if (animation_choice != 0) {
             for (current_step = 0; current_step <= total_steps; current_step++) {
-                animate_one_step(); // Calculate one frame
-                display();          // Render the frame
-                platform_sleep(16); // Pause for ~60 FPS
+                animate_one_step();
+                display();
+                platform_sleep(16);
             }
-            animation_choice = 0; // Reset for next input
+            animation_choice = 0;
         }
     }
     return 0;
 }
 
-
-/**
- * @brief Initializes OpenGL states, projection, and background color.
- */
 void init() {
     glClearColor(0.1f, 0.15f, 0.2f, 1.0f);
     glMatrixMode(GL_PROJECTION);
@@ -181,13 +133,9 @@ void init() {
     gluOrtho2D(-WINDOW_WIDTH / 2.0, WINDOW_WIDTH / 2.0, -WINDOW_HEIGHT / 2.0, WINDOW_HEIGHT / 2.0);
 }
 
-/**
- * @brief The main display callback function.
- */
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw X and Y axes
     glColor3f(0.3f, 0.3f, 0.3f);
     glBegin(GL_LINES);
     glVertex2f(-WINDOW_WIDTH / 2.0, 0.0);
@@ -196,7 +144,6 @@ void display() {
     glVertex2f(0.0, WINDOW_HEIGHT / 2.0);
     glEnd();
 
-    // Draw the triangle
     glColor3f(0.2f, 0.6f, 1.0f);
     glBegin(GL_POLYGON);
     for (int i = 0; i < 3; ++i) {
@@ -207,31 +154,24 @@ void display() {
     glutSwapBuffers();
 }
 
-/**
- * @brief Resets the triangle to its absolute original position.
- */
 void reset_triangle() {
     memcpy(triangle_vertices, initial_vertices, sizeof(initial_vertices));
     memcpy(base_vertices, initial_vertices, sizeof(initial_vertices));
 }
 
-/**
- * @brief Calculates the vertex positions for a single frame of an animation.
- * This function no longer uses timers; it's called directly from the main loop.
- */
 void animate_one_step() {
     if (animation_choice == 0) return;
 
     float progress = (float)current_step / total_steps;
 
     switch (animation_choice) {
-        case 1: // Translation
+        case 1:
             for (int i = 0; i < 3; i++) {
                 triangle_vertices[i][0] = base_vertices[i][0] + trans_x * progress;
                 triangle_vertices[i][1] = base_vertices[i][1] + trans_y * progress;
             }
             break;
-        case 2: // Scaling
+        case 2:
             {
                 float current_sx = 1.0f + (scale_x - 1.0f) * progress;
                 float current_sy = 1.0f + (scale_y - 1.0f) * progress;
@@ -241,7 +181,7 @@ void animate_one_step() {
                 }
             }
             break;
-        case 3: // Rotation
+        case 3:
             {
                 float current_angle_rad = (rotation_angle * M_PI / 180.0) * progress;
                 float cos_val = cos(current_angle_rad);
@@ -254,15 +194,15 @@ void animate_one_step() {
                 }
             }
             break;
-        case 4: // Reflection
+        case 4:
             {
                 float reflect_factor = 1.0f - 2.0f * progress;
-                if (reflection_axis == 1) { // Reflect about X-axis
+                if (reflection_axis == 1) {
                     for (int i = 0; i < 3; i++) {
                         triangle_vertices[i][0] = base_vertices[i][0];
                         triangle_vertices[i][1] = base_vertices[i][1] * reflect_factor;
                     }
-                } else { // Reflect about Y-axis
+                } else {
                     for (int i = 0; i < 3; i++) {
                         triangle_vertices[i][0] = base_vertices[i][0] * reflect_factor;
                         triangle_vertices[i][1] = base_vertices[i][1];
@@ -270,7 +210,7 @@ void animate_one_step() {
                 }
             }
             break;
-        case 5: // Shearing
+        case 5:
             {
                 float current_shx = shear_x * progress;
                 float current_shy = shear_y * progress;
@@ -285,9 +225,6 @@ void animate_one_step() {
     }
 }
 
-/**
- * @brief Prints the user menu to the console.
- */
 void print_menu() {
     printf("\n\n========= 2D Transformation Menu =========\n");
     printf("  1: Translate\n");
@@ -300,14 +237,10 @@ void print_menu() {
     printf("==========================================\n");
 }
 
-/**
- * @brief A cross-platform sleep function.
- * @param milliseconds The duration to sleep for.
- */
 void platform_sleep(int milliseconds) {
 #ifdef _WIN32
     Sleep(milliseconds);
 #else
-    usleep(milliseconds * 1000); // usleep takes microseconds
+    usleep(milliseconds * 1000);
 #endif
 }
